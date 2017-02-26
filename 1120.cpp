@@ -2,7 +2,7 @@
 #include <set>
 using namespace std;
 
-int sum(int t){
+int sum(int t){ 
     int ans=0;
     while(t){
         ans+=(t%10);
