@@ -1,70 +1,72 @@
 #include <cstdio>
-#include <cstring>
 #include <vector>
-#include <stack>
+#include <queue>
 using namespace std;
-#define INF 100000000
 
-const int MAXN=503;
-int n,m,s,e,G[MAXN][MAXN],time[MAXN][MAXN];
-int d[MAXN],cnt[MAXN],path[MAXN];
-bool used[MAXN];
+#define INF 10000000
+struct Node{
+	int e,l;
+	Node(int _e,int _l):e(_e),l(_l){}
+};
+const int MAXN = 503;
+int n,m,s,e,dt[MAXN],dl[MAXN],path[MAXN],time[MAXN];
+vector<Node> Gl[MAXN],Gt[MAXN];
 
-void dijkstra(int (&G)[MAXN][MAXN]){
-	for(int i=0;i<n;++i){
-		d[i]=INF;
-		cnt[i]=INF;
-		used[i]=false;
-	}
-	d[s]=0;
-	cnt[s]=1;
-	while(true){
-		int minV=INF,minI=-1;
-		for(int i=0;i<m;++i){
-			if(!used[i] && d[i]<minV){
-				minV = d[i];
-				minI=i;
-			}
-		}
-		if(minI==-1) break ;
-		used[minI]=true;
-		for(int i=0;i<n;++i){
-			if(!used[i] && G[minI][i]){
-				if(d[minI] + G[minI][i]<d[i]){
-					d[i] = d[minI] + G[minI][i];
-					path[i] = minI;	
-					cnt[i] = cnt[minI]+1;
-				}else if(d[minI] + G[minI][i]==d[i] && cnt[minI]+1<cnt[i]){
-					cnt[i]=cnt[minI]+1;
-					path[i] = minI;	
+bool operator<(const Node &a,const Node &b){
+	return a.l > b.l;
+}
+
+void dijkstra_t(){
+	fill(dl,dl+n,INF);
+	fill(dt,dt+n,INF);
+	priority_queue<Node> pq;
+	pq.push(Node(s,0));
+	dl[s] = 1;
+	while(!pq.empty()){
+		Node node = pq.top();
+		pq.pop();
+		if(dt[node.e] < node.l) continue;
+		dt[node.e] = node.l;
+		vector<Node> &v = Gt[node.e];
+		for(int i=0;i<v.size();++i){
+			Node &tmp = Gt[node.e][i];
+			if(dt[node.e] + tmp.l < dt[tmp.e]){
+				dt[tmp.e] = dt[node.e] + tmp.l;
+				path[tmp.e] = node.e;
+				dl[tmp.e] = dl[node.e]+1;
+				pq.push(Node(tmp.e, dt[tmp.e]));
+			}else if(dt[node.e] + tmp.l == dt[tmp.e]){
+				if(dl[node.e]+1<dl[tmp.e]){
+					dl[tmp.e] = dl[node.e]+1;
+					path[tmp.e] = node.e;
 				}
 			}
 		}
 	}
 }
-void dijkstra1(){
-	for(int i=0;i<n;++i){
-		cnt[i]=INF;
-		used[i]=false;
-	}
-	cnt[s]=0;
-	while(true){
-		int minV=INF,minI=-1;
-		for(int i=0;i<m;++i){
-			if(!used[i] && cnt[i]<minV){
-				minV = cnt[i];
-				minI=i;
-			}
-		}
-		if(minI==-1) break ;
-		used[minI]=true;
-		for(int i=0;i<n;++i){
-			if(!used[i] && G[minI][i]){
-				if(cnt[minI] + G[minI][i]<cnt[i]){
-					cnt[i] = cnt[minI] + G[minI][i];
-					path[i] = minI;	
-				}else if(cnt[minI] + G[minI][i]==cnt[i] && d[minI]+time[minI][i]<d[i]){
-					path[i] = minI;	
+void dijkstra_l(){
+	fill(dl,dl+n,INF);
+	fill(time,time+n,INF);
+	priority_queue<Node> pq;
+	pq.push(Node(s,0));
+	time[s]=0;
+	while(!pq.empty()){
+		Node node = pq.top();
+		pq.pop();
+		if(dl[node.e] < node.l) continue;
+		dl[node.e] = node.l;
+		vector<Node> &v = Gl[node.e];
+		for(int i=0;i<v.size();++i){
+			Node &tmp = Gl[node.e][i];
+			if(dl[node.e] + tmp.l < dl[tmp.e]){
+				dl[tmp.e] = dl[node.e] + tmp.l;
+				path[tmp.e] = node.e;
+				pq.push(Node(tmp.e, dl[tmp.e]));
+				time[tmp.e] = time[node.e] + Gt[node.e][i].l;
+			}else if(dl[node.e] + tmp.l == dl[tmp.e]){
+				if(time[node.e]+Gt[node.e][i].l<time[tmp.e]){ 
+					time[tmp.e] = time[node.e]+Gt[node.e][i].l;
+					path[tmp.e] = node.e;
 				}
 			}
 		}
@@ -89,33 +91,27 @@ int main(int argc, char const *argv[]){
 	for(int i=0;i<m;++i){
 		int a,b,f,l,t;
 		scanf("%d %d %d %d %d",&a,&b,&f,&l,&t);
-		G[a][b] = l;
-		time[a][b] = t;
+		Gl[a].push_back(Node(b,l));
+		Gt[a].push_back(Node(b,t));
 		if(!f){
-			G[b][a]=l;
-			time[b][a]=t;
+			Gl[b].push_back(Node(a,l));
+			Gt[b].push_back(Node(a,t));
 		}
 	}
 	scanf("%d %d",&s,&e);
-	
-	vector<int> v1,v2;
-
-	dijkstra(time);
-	int min_time = d[e];
-	get_path(v1);
-
-	dijkstra1();
-	int min_length = cnt[e];
-	get_path(v2);
-	if(v1==v2){
-		printf("Distance = %d; Time = %d: %d",min_length,min_time,s);
-		print(v1);
+	vector<int> vt,vl;
+	dijkstra_t();
+	get_path(vt);
+	dijkstra_l();
+	get_path(vl);
+	if(vt == vl){
+		printf("Distance = %d; Time = %d: %d",dl[e],dt[e],s);
+		print(vl);
 	}else{
-		printf("Distance = %d: %d",min_length,s);
-		print(v2);
-		printf("Time = %d: %d",min_time,s);
-		print(v1);
+		printf("Distance = %d: %d",dl[e],s);
+		print(vl);
+		printf("Time = %d: %d",dt[e],s);
+		print(vt);
 	}
-
 	return 0;
 }
